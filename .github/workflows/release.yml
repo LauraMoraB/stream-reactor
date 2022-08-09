@@ -37,11 +37,9 @@ jobs:
           echo "::set-output name=tag::$${GITHUB_REF##*/}"
 
   run_build_workflow:
-    runs-on: ubuntu-latest
     needs: validate_tag
-    steps:
-      - name: Build projects
-        uses: ./.github/workflows/build
+    uses: ./.github/workflows/build.yaml
+    secrets: inherit
 
   release_to_github:
     runs-on: ubuntu-latest
