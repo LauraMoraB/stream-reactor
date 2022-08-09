@@ -207,6 +207,7 @@ jobs:
   upload-assembly:
     needs:
       - initiate
+      - build-and-cache-assembly
       # - functional-test
     timeout-minutes: 30
     runs-on: ubuntu-latest
