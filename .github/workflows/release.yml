@@ -45,7 +45,7 @@ jobs:
     runs-on: ubuntu-latest
     needs:
       - validate_tag
-      - call_build_workflow
+      - run_build_workflow
     env:
       DRAFT_RELEASE: '${{ needs.validate_tag.outputs.draft_release }}'
       TAG: '${{ needs.validate_tag.outputs.tag }}'
