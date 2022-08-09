@@ -38,7 +38,7 @@ jobs:
 
   run_build_workflow:
     needs: validate_tag
-    uses: ./.github/workflows/build.yaml
+    uses: ./.github/workflows/build.yml
     secrets: inherit
 
   release_to_github:
