@@ -1,7 +1,9 @@
-
 name: CI
 
-on: [pull_request]
+on:
+  pull_request:
+  workflow_call:
+
 jobs:
   initiate:
     timeout-minutes: 5
@@ -230,6 +232,7 @@ jobs:
           path: |
             ~/**/target/**/libs/*.jar
           key: ${{ runner.os }}-assembly-${{ matrix.module }}-${{ github.run_id }}
+
       - name: Upload artifact
         uses: actions/upload-artifact@v3
         with:
