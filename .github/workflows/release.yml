@@ -31,6 +31,7 @@ jobs:
           else
               echo "Existing, github ref needs to be a tag with format vx.y.z or vx.y.z+(alpha|beta|rc)"
               exit 1
+          fi
 
           echo "::set-output name=draft_release::${draft_release}"
           echo "::set-output name=tag::$${GITHUB_REF##*/}"
