@@ -67,6 +67,7 @@ jobs:
     needs:
       - validate-tag
       - build
+      - create-release
     strategy:
       matrix:
         module: ${{fromJSON(needs.build.outputs.module)}}
