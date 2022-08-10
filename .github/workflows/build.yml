@@ -177,11 +177,10 @@ jobs:
         id: version
         shell: bash
         run: |
-          if [ "${{ github.event.inputs.version }}" != "" ]; then
-            echo "::set-output name=version::${{ github.event.inputs.version }}"
+          if [ "${{ inputs.version }}" != "" ]; then
+            echo "::set-output name=version::${{ inputs.version }}"
           else
-             tag_sha=$(git describe --tags --always)
-             echo "::set-output name=version::$tag_sha"
+             echo "::set-output name=version::$(git describe --tags --always)"
           fi
       - name: Build assembly
         env:
