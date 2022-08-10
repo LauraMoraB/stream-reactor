@@ -1,8 +1,39 @@
-
 name: CI
 
-on: [pull_request]
+on:
+  pull_request:
+  workflow_call:
+    inputs:
+      version:
+        required: true
+        type: string
+    outputs:
+      modules:
+        description: "Stream reactor collection of modules"
+        value: ${{ jobs.initiate.outputs.matrix }}
+
 jobs:
+  get-version:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Get version
+        id: version
+        shell: bash
+        run: |
+          if [ "${{ github.event.inputs.version }}" != "" ]; then
+            echo "::set-output name=version::${{ github.event.inputs.version }}"
+          else
+             tag_sha=$(git describe --tags --always)
+             echo "::set-output name=version::$tag_sha"
+          fi
+
   initiate:
     timeout-minutes: 5
     runs-on: ubuntu-latest
@@ -28,6 +59,7 @@ jobs:
         run: sbt generateModulesList generateItModulesList generateFunModulesList
         env:
           JVM_OPTS: -Xmx3200m
+
       - name: Read modules lists
         id: read-mods
         run: |
@@ -129,8 +161,9 @@ jobs:
   build-and-cache-assembly:
     needs:
       - initiate
+      - get-version
       - test
-      - integration-test
+      # - integration-test
     timeout-minutes: 30
     runs-on: ubuntu-latest
     strategy:
@@ -150,16 +183,19 @@ jobs:
             ~/.ivy2/cache
             ~/.sbt
           key: ${{ runner.os }}-sbt-${{ hashFiles('*.sbt') }}-${{ hashFiles('project/**') }}
+
       - name: Cache assembly
         uses: actions/cache@v3
         with:
           path: |
             ~/**/target/**/libs/*.jar
           key: ${{ runner.os }}-assembly-${{ matrix.module }}-${{ github.run_id }}
+
       - name: Build assembly
-        run: sbt "project ${{ matrix.module }};set assembly / test := {}" assembly
         env:
           JVM_OPTS: -Xmx3200m
+          VERSION: ${{ needs.get-version.outputs.version }}
+        run: sbt "project ${{ matrix.module }};set assembly / test := {}" assembly
 
   functional-test:
     needs:
@@ -205,6 +241,7 @@ jobs:
   upload-assembly:
     needs:
       - initiate
+      - build-and-cache-assembly
       - functional-test
     timeout-minutes: 30
     runs-on: ubuntu-latest
@@ -230,6 +267,7 @@ jobs:
           path: |
             ~/**/target/**/libs/*.jar
           key: ${{ runner.os }}-assembly-${{ matrix.module }}-${{ github.run_id }}
+
       - name: Upload artifact
         uses: actions/upload-artifact@v3
         with:
