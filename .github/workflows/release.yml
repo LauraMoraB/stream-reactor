@@ -47,33 +47,33 @@ jobs:
       version: "${{ needs.validate-tag.outputs.tag }}"
     secrets: inherit
 
-  create-release:
-    runs-on: ubuntu-latest
-    env:
-      DRAFT_RELEASE: '${{ needs.validate-tag.outputs.draft_release }}'
-      TAG: '${{ needs.validate-tag.outputs.tag }}'
-    needs:
-      - validate-tag
-      - build
-    steps:
-      - name: Create Release
-        uses: softprops/action-gh-release@v1
-        with:
-          draft: '${{ env.DRAFT_RELEASE }}'
-          name: 'Stream Reactor ${{ env.TAG }}'
+#  create-release:
+#    runs-on: ubuntu-latest
+#    env:
+#      DRAFT_RELEASE: '${{ needs.validate-tag.outputs.draft_release }}'
+#      TAG: '${{ needs.validate-tag.outputs.tag }}'
+#    needs:
+#      - validate-tag
+#      - build
+#    steps:
+#      - name: Create Release
+#        uses: softprops/action-gh-release@v1
+#        with:
+#          draft: '${{ env.DRAFT_RELEASE }}'
+#          name: 'Stream Reactor ${{ env.TAG }}'
 
   upload-assets-to-release:
     runs-on: ubuntu-latest
     needs:
       - validate-tag
       - build
-      - create-release
+      # - create-release
     strategy:
       matrix:
         module: ${{fromJSON(needs.build.outputs.modules)}}
     env:
       TAG: ${{ needs.validate-tag.outputs.tag }}
-
+      DRAFT_RELEASE: '${{ needs.validate-tag.outputs.draft_release }}'
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
@@ -102,7 +102,7 @@ jobs:
       - name: Package Connector
         shell: bash
         run: |
-          FOLDER=kafka-connect-$-${{ matrix.module }}-${{ env.TAG }}
+          FOLDER=kafka-connect-${{ matrix.module }}-${{ env.TAG }}
           mkdir -p $FOLDER
           cp **/target/**/libs/*.jar LICENSE $FOLDER/
           zip -r "$FOLDER.zip" $FOLDER/
@@ -110,6 +110,7 @@ jobs:
       - name: Upload binaries to release
         uses: svenstaro/upload-release-action@v2
         with:
-          file: kafka-connect-$-${{ matrix.module }}-${{ env.TAG }}.zip
+          file: kafka-connect-${{ matrix.module }}-${{ env.TAG }}.zip
           asset_name: "kafka-connect-${{ matrix.module }}-${{ env.TAG }}"
           release_name: 'Stream Reactor ${{ env.TAG }}'
+          prerelease: ${{ env.DRAFT_RELEASE }}
