@@ -3,8 +3,33 @@ name: CI
 on:
   pull_request:
   workflow_call:
+    inputs:
+      version:
+        required: true
+        type: string
 
 jobs:
+  get-version:
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Get version
+        id: version
+        shell: bash
+        run: |
+          if [ "${{ github.event.inputs.version }}" != "" ]; then
+            echo "::set-output name=version::${{ github.event.inputs.version }}"
+          else
+             tag_sha=$(git describe --tags --always)
+             echo "::set-output name=version::$tag_sha"
+          fi
+
   initiate:
     timeout-minutes: 5
     runs-on: ubuntu-latest
@@ -33,7 +58,8 @@ jobs:
       - name: Read modules lists
         id: read-mods
         run: |
-          echo "::set-output name=matrix::$(cat ./target/scala-2.13/resource_managed/main/modules.txt)"
+        #  echo "::set-output name=matrix::$(cat ./target/scala-2.13/resource_managed/main/modules.txt)"
+          echo '::set-output name=matrix::["aws-s3-kafka-2-8","aws-s3-kafka-3-1"]'
           echo "::set-output name=it-matrix::$(cat ./target/scala-2.13/resource_managed/main/it-modules.txt)"
           echo "::set-output name=fun-matrix::$(cat ./target/scala-2.13/resource_managed/main/fun-modules.txt)"
       - name: Cleanup before cache
@@ -131,6 +157,7 @@ jobs:
   build-and-cache-assembly:
     needs:
       - initiate
+      - get-version
       # - test
       # - integration-test
     timeout-minutes: 30
@@ -152,16 +179,19 @@ jobs:
             ~/.ivy2/cache
             ~/.sbt
           key: ${{ runner.os }}-sbt-${{ hashFiles('*.sbt') }}-${{ hashFiles('project/**') }}
+
       - name: Cache assembly
         uses: actions/cache@v3
         with:
           path: |
             ~/**/target/**/libs/*.jar
           key: ${{ runner.os }}-assembly-${{ matrix.module }}-${{ github.run_id }}
+
       - name: Build assembly
-        run: sbt "project ${{ matrix.module }};set assembly / test := {}" assembly
         env:
           JVM_OPTS: -Xmx3200m
+          VERSION: ${{ needs.get-version.outputs.version }}
+        run: sbt "project ${{ matrix.module }};set assembly / test := {}" assembly
 
 #  functional-test:
 #    needs:
