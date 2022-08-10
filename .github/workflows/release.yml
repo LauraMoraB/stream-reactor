@@ -37,7 +37,7 @@ jobs:
           fi
 
           echo "::set-output name=draft_release::$draft_release"
-          echo "::set-output name=tag::$          tag"
+          echo "::set-output name=tag::$tag"
 
   build:
     needs:
@@ -70,7 +70,7 @@ jobs:
       - create-release
     strategy:
       matrix:
-        module: ${{fromJSON(needs.build.outputs.module)}}
+        module: ${{fromJSON(needs.build.outputs.modules)}}
     env:
       TAG: ${{ needs.validate-tag.outputs.tag }}
 
